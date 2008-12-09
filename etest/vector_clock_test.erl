@@ -3,15 +3,15 @@
 increment_clock_test() ->
   Clock = create(a),
   Clock2 = increment(b, Clock),
-  [{a, 1}, {b, 1}] = Clock2,
+  less = compare(Clock, Clock2),
   Clock3 = increment(a, Clock2),
-  [{a, 2}, {b, 1}] = Clock3,
+  less = compare(Clock2, Clock3),
   Clock4 = increment(b, Clock3),
-  [{a, 2}, {b, 2}] = Clock4,
+  less = compare(Clock3, Clock4),
   Clock5 = increment(c, Clock4),
-  [{a, 2}, {b, 2}, {c, 1}] = Clock5,
+  less = compare(Clock4, Clock5),
   Clock6 = increment(b, Clock5),
-  [{a, 2}, {b, 3}, {c, 1}] = Clock6.
+  less = compare(Clock5, Clock6).
   
 concurrent_test() ->
   ClockA = [{b, 1}],

@@ -6,10 +6,11 @@
 -include("etest/vector_clock_test.erl").
 -endif.
 
-create(NodeName) -> [{NodeName, 1}].
+create(NodeName) -> [{NodeName, lib_misc:now_float()}].
+
 
 increment(NodeName, Clock) ->
-  orddict:update_counter(NodeName, 1, Clock).
+  orddict:store(NodeName, lib_misc:now_float(), Clock). 
 
 resolve({ClockA, ValuesA}, {ClockB, ValuesB}) ->
   case compare(ClockA, ClockB) of

@@ -84,17 +84,11 @@ sync(Local, Remote) ->
         {{ok, {Context, [Value]}}, not_found} -> 
           % error_logger:info_msg("put ~p to remote~n", [Key]),
           storage_server:put(Remote, Key, Context, Value);
-        {not_found, not_found} -> error_logger:info_msg("not found~n", []);
+        {not_found, not_found} -> error_logger:info_msg("not found~n");
         {{ok, ValueA}, {ok, ValueB}} ->
           {Context, Values} = vector_clock:resolve(ValueA, ValueB),
-          [Value|_] = Values,
-          if
-            length(Values) == 1 -> 
-              storage_server:put(Remote, Key, Context, Value),
-              storage_server:put(Local, Key, Context, Value);
-            true ->
-              error_logger:info_msg("Cannot resolve key ~p with ~p~n", [Key, Remote])
-          end
+          storage_server:put(Remote, Key, Context, Values),
+          storage_server:put(Local, Key, Context, Values)
       end
     end, dmerkle:key_diff(TreeA, TreeB)).
 	
@@ -151,12 +145,13 @@ handle_call({get, Key}, _From, State = #storage{module=Module,table=Table}) ->
   end,
 	{reply, Result, State};
 	
-handle_call({put, Key, Context, Value}, _From, State = #storage{module=Module,table=Table,tree=Tree}) ->
-  UpdatedTree = dmerkle:update(Key, Value, Tree),
-  case catch Module:put(sanitize_key(Key), Context, Value, Table) of
-    {ok, ModifiedTable} ->
-      stats_server:request(put, byte_size(Value)),
-      {reply, ok, State#storage{table=ModifiedTable,tree=UpdatedTree}};
+handle_call({put, Key, Context, ValIn}, _From, State = #storage{module=Module,table=Table,tree=Tree}) ->
+  Values = lib_misc:listify(ValIn),
+  case (catch Module:get(sanitize_key(Key), Table)) of
+    {ok, {ReadContext, ReadValues}} ->
+      {ResolvedContext, ResolvedValues} = vector_clock:resolve({ReadContext, ReadValues}, {Context, Values}),
+      internal_put(Key, ResolvedContext, ResolvedValues, Tree, Table, Module, State);
+    {ok, not_found} -> internal_put(Key, Context, Values, Tree, Table, Module, State);
     Failure -> {reply, Failure, State}
   end;
 	
@@ -246,6 +241,17 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
+
+internal_put(Key, Context, Values, Tree, Table, Module, State) ->
+  TreeFun = fun() -> dmerkle:update(Key, Values, Tree) end,
+  TableFun = fun() -> Module:put(sanitize_key(Key), Context, Values, Table) end,
+  [UpdatedTree, TableResult] = lib_misc:pmap(fun(F) -> F() end, [TreeFun, TableFun], 2),
+  case TableResult of
+    {ok, ModifiedTable} ->
+      stats_server:request(put, lib_misc:byte_size(Values)),
+      {reply, ok, State#storage{table=ModifiedTable,tree=UpdatedTree}};
+    Failure -> {reply, Failure, State}
+  end.
 
 sanitize_key(Key) when is_atom(Key) -> atom_to_list(Key);
 sanitize_key(Key) when is_binary(Key) -> binary_to_list(Key);

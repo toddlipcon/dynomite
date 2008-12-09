@@ -1,7 +1,7 @@
 -include_lib("eunit.hrl").
 
 clean_put_listener_test() ->
-  {ok, Pid} = dynomite_sup:start_link({{1,1,1},[{fs_storage, "/Users/cliff/data/storage_test", fsstore}]}),
+  {ok, Pid} = dynomite_sup:start_link({{1,1,1},[{fs_storage, "testdata/storage_test", fsstore}]}),
   {ok, Socket} = gen_tcp:connect("localhost", 11222, [binary, {active,false},{packet,0}]),
   gen_tcp:send(Socket, "put 5 mykey 0  5 value\n"),
   "succ" = read_section(Socket),
@@ -9,7 +9,7 @@ clean_put_listener_test() ->
   close_conn(Socket, Pid).
   
 put_and_get_test() ->
-  {ok, Pid} = dynomite_sup:start_link({{1,1,1},[{fs_storage, "/Users/cliff/data/storage_test", fsstore}]}),
+  {ok, Pid} = dynomite_sup:start_link({{1,1,1},[{fs_storage, "testdata/storage_test", fsstore}]}),
   {ok, Socket} = gen_tcp:connect("localhost", 11222, [binary, {active,false},{packet,0}]),
   gen_tcp:send(Socket, "put 5 mykey 0  5 value\n"),
   "succ" = read_section(Socket),
@@ -22,7 +22,7 @@ put_and_get_test() ->
   close_conn(Socket, Pid).
   
 put_and_has_key_test() ->
-  {ok, Pid} = dynomite_sup:start_link({{1,1,1},[{fs_storage, "/Users/cliff/data/storage_test", fsstore}]}),
+  {ok, Pid} = dynomite_sup:start_link({{1,1,1},[{fs_storage, "testdata/storage_test", fsstore}]}),
   {ok, Socket} = gen_tcp:connect("localhost", 11222, [binary, {active,false},{packet,0}]),
   gen_tcp:send(Socket, "put 5 mykey 0  5 value\n"),
   "succ" = read_section(Socket),
@@ -36,7 +36,7 @@ put_and_has_key_test() ->
   close_conn(Socket, Pid).
   
 put_and_delete_test() ->
-  {ok, Pid} = dynomite_sup:start_link({{1,1,1},[{fs_storage, "/Users/cliff/data/storage_test", fsstore}]}),
+  {ok, Pid} = dynomite_sup:start_link({{1,1,1},[{fs_storage, "testdata/storage_test", fsstore}]}),
   {ok, Socket} = gen_tcp:connect("localhost", 11222, [binary, {active,false},{packet,0}]),
   gen_tcp:send(Socket, "put 5 mykey 0  5 value\n"),
   "succ" = read_section(Socket),
